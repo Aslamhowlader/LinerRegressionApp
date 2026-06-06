@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import (
     mean_absolute_error,
@@ -49,50 +49,27 @@ st.dataframe(df.head())
 st.subheader("Shape")
 st.write(df.shape)
 
-# Display data types to help debug
-st.subheader("Data Types")
-st.write(df.dtypes)
-
 # ======================
-# Missing Values Fix (FIXED VERSION)
+# Convert ALL data to numeric (THE FIX)
 # ======================
-st.subheader("Missing Values Handling")
+st.subheader("Data Processing")
 
-# First, convert ALL columns to numeric where possible
+# Convert every column to numeric
 for col in df.columns:
-    # Try to convert to numeric first
     df[col] = pd.to_numeric(df[col], errors='coerce')
-    
-    # Now fill missing values
-    if df[col].isnull().any():
-        if df[col].dtype in ['float64', 'int64']:
-            df[col] = df[col].fillna(df[col].mean())
-        else:
-            # For any remaining non-numeric, fill with 0
-            df[col] = df[col].fillna(0)
 
-# ======================
-# Final check - ensure all numeric
-# ======================
-# Convert any remaining non-numeric columns to numeric
+# Check for any non-numeric columns remaining
+non_numeric = df.select_dtypes(include=['object']).columns.tolist()
+if non_numeric:
+    st.error(f"Cannot convert these columns to numbers: {non_numeric}")
+    st.stop()
+
+# Fill missing values
 for col in df.columns:
-    if df[col].dtype == 'object':
-        st.warning(f"Converting column '{col}' to numeric...")
-        df[col] = pd.to_numeric(df[col], errors='coerce')
+    if df[col].isnull().any():
         df[col] = df[col].fillna(df[col].mean())
 
-# Double check all columns are numeric
-numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
-if len(numeric_cols) < len(df.columns):
-    st.error(f"Warning: {len(df.columns) - len(numeric_cols)} columns could not be converted to numeric")
-    st.write("Non-numeric columns:", set(df.columns) - set(numeric_cols))
-
-# Keep only numeric columns for regression
-df = df.select_dtypes(include=[np.number])
-
-if df.empty:
-    st.error("No numeric columns found in the dataset. Please upload a CSV with numeric data.")
-    st.stop()
+st.success(f"Processed {len(df.columns)} numeric columns")
 
 # ======================
 # Target Selection
@@ -181,20 +158,17 @@ st.pyplot(fig)
 # ======================
 st.subheader("Feature Importance")
 
-# Ensure we have the original feature names
-feature_names = X.columns.tolist()
-
 coef_df = pd.DataFrame({
-    "Feature": feature_names,
+    "Feature": X.columns,
     "Coefficient": model.coef_
 }).sort_values(by="Coefficient", ascending=False)
 
 st.dataframe(coef_df)
 
-# Optional: Plot feature importance
+# Plot feature importance
 fig2, ax2 = plt.subplots(figsize=(10, 6))
 coef_df_sorted = coef_df.sort_values('Coefficient')
 ax2.barh(coef_df_sorted['Feature'], coef_df_sorted['Coefficient'])
 ax2.set_xlabel("Coefficient Value")
-ax2.set_title("Feature Importance (Coefficients)")
+ax2.set_title("Feature Importance")
 st.pyplot(fig2)
