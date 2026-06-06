@@ -1,4 +1,4 @@
-```python
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -248,4 +248,3 @@ else:
     st.info(
         "Please upload a CSV file to start."
     )
-```
